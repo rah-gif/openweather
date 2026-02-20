@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <style>
+        /* Body Styling */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            color: white;
+            padding: 20px;
+            margin: 0;
+            height: 100vh;
+            overflow-y: auto;
+            position: relative;
+            background: linear-gradient(45deg, #1137bd, #df3535);
+            background-size: 400% 400%;
+            animation: gradientAnimation 10s ease infinite;
+        }
+
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(255, 255, 255, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .container:hover {
+            transform: scale(1.05);
+        }
+
+        input {
+            width: 80%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: none;
+            text-align: center;
+            background: #333;
+            color: white;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            background: #ff7f50;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+
+        button:hover {
+            background: #ff5722;
+        }
+
+        .weather-info {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        .weather-icon {
+            width: 120px;
+            height: 120px;
+        }
+
+        .error-message {
+            color: yellow;
+            font-size: 18px;
+        }
+
+        nav {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            border-radius: 10px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+            transition: 0.3s;
+        }
+
+        nav a:hover {
+            color: #2f24a4;
+            font-size: 20px;
+        }
+
+        /* ⭐ Footer Styling (Added Only This Part) ⭐ */
+        footer {
+            margin-top: 40px;
+            padding: 15px;
+            color: white;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="About.html">About</a>
+        <a href="Weather Forecast.html">Forecast</a>
+        <a href="Register.html">Register</a>
+
+
+    </nav>
+
+    <div class="container">
+        <h1>🌤️ Weather App</h1>
+        <input type="text" id="city" placeholder="Enter city name" />
+        <button onclick="getWeatherByCity()">Search</button>
+        <button onclick="getWeatherByLocation()">📍 Use Current Location</button>
+        <div class="weather-info" id="weather"></div>
+    </div>
+
+    <!-- ⭐ Footer Section Added Here ⭐ -->
+    <footer>
+        © 2025 Weather App | Created with ❤ by Chethana
+    </footer>
+
+    <script src="config.js"></script>
+    <script>
+        // Use the API key from the config file
+        const apiKey = CONFIG.API_KEY;
+
+        async function getWeatherByCity() {
+            const city = document.getElementById("city").value;
+            if (!city) {
+                alert("Please enter a city name");
+                return;
+            }
+            const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+            fetchWeather(url);
+        }
+
+        async function getWeatherByLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+                    fetchWeather(url);
+                }, function(error) {
+                    alert("Unable to retrieve your location.");
+                });
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        async function fetchWeather(url) {
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.cod !== 200) {
+                    document.getElementById("weather").innerHTML = `<p class='error-message'>${data.message}</p>`;
+                    return;
+                }
+
+                document.getElementById("weather").innerHTML = `
+                    <h2>${data.name}, ${data.sys.country}</h2>
+                    <img class="weather-icon" src="https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png">
+                    <p><strong>${data.weather[0].description.toUpperCase()}</strong></p>
+                    <h3>🌡️ Temperature: ${data.main.temp}°C</h3>
+                    <p>Feels like: ${data.main.feels_like}°C</p>
+                    <p>Humidity: ${data.main.humidity}%</p>
+                    <p>Pressure: ${data.main.pressure} hPa</p>
+                    <p>Wind Speed: ${data.wind.speed} m/s</p>
+                    <p>🌅 Sunrise: ${new Date(data.sys.sunrise * 1000).toLocaleTimeString()}</p>
+                    <p>🌇 Sunset: ${new Date(data.sys.sunset * 1000).toLocaleTimeString()}</p>
+                `;
+            } catch (error) {
+                console.error("Error fetching weather:", error);
+            }
+        }
+    </script>
+</body>
+</html>

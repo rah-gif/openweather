@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Forecast</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #121212;
+            color: white;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 50px auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
+        }
+        nav {
+            background: #1e1e1e;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+            transition: 0.3s;
+        }
+        nav a:hover {
+            color: #ff7f50;
+        }
+        input {
+            width: 80%;
+            max-width: 300px;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: none;
+            text-align: center;
+            background: #333;
+            color: white;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            background: #ff7f50;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #ff5722;
+        }
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+            padding: 20px;
+        }
+        .forecast-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            transition: transform 0.3s;
+        }
+        .forecast-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .weather-icon {
+            width: 64px;
+            height: 64px;
+        }
+        .temp-high {
+            color: #ff7f50;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .temp-low {
+            color: #87ceeb;
+            font-size: 1.1em;
+        }
+        .details {
+            margin-top: 15px;
+            font-size: 0.9em;
+            text-align: left;
+        }
+        .details p {
+            margin: 5px 0;
+        }
+        .city-header {
+            margin-bottom: 30px;
+            color: #ff7f50;
+        }
+        .error-message {
+            color: yellow;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="About.html">About</a>
+        <a href="Register.html">Register</a>
+
+    </nav>
+    <div class="container">
+        <h1>🌤️ 5-Day Weather Forecast</h1>
+        <input type="text" id="city" placeholder="Enter city name" />
+        <button onclick="getForecast()">Get Forecast</button>
+        <div id="forecast-container"></div>
+    </div>
+    <script src="config.js"></script>
+    <script>
+        async function getForecast() {
+            const apiKey = CONFIG.API_KEY;
+            const city = document.getElementById("city").value;
+            
+            if (!city) {
+                alert("Please enter a city name");
+                return;
+            }
+            
+            const url = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.cod !== "200") {
+                    document.getElementById("forecast-container").innerHTML = 
+                        `<p class='error-message'>${data.message}</p>`;
+                    return;
+                }
+
+                // Group forecast by day
+                const dailyForecasts = {};
+                data.list.forEach(forecast => {
+                    const date = new Date(forecast.dt * 1000).toLocaleDateString();
+                    if (!dailyForecasts[date]) {
+                        dailyForecasts[date] = {
+                            temp_min: forecast.main.temp_min,
+                            temp_max: forecast.main.temp_max,
+                            humidity: forecast.main.humidity,
+                            weather: forecast.weather[0],
+                            wind: forecast.wind.speed,
+                            description: forecast.weather[0].description,
+                            icon: forecast.weather[0].icon
+                        };
+                    } else {
+                        dailyForecasts[date].temp_min = Math.min(dailyForecasts[date].temp_min, forecast.main.temp_min);
+                        dailyForecasts[date].temp_max = Math.max(dailyForecasts[date].temp_max, forecast.main.temp_max);
+                    }
+                });
+
+                let forecastHTML = `
+                    <h2 class="city-header">${data.city.name}, ${data.city.country}</h2>
+                    <div class="forecast-grid">
+                `;
+
+                Object.entries(dailyForecasts).slice(0, 5).forEach(([date, forecast]) => {
+                    const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
+                    forecastHTML += `
+                        <div class="forecast-card">
+                            <h3>${dayName}</h3>
+                            <p>${date}</p>
+                            <img class="weather-icon" src="https://openweathermap.org/img/wn/${forecast.icon}@2x.png" 
+                                alt="${forecast.description}">
+                            <p>${forecast.description.toUpperCase()}</p>
+                            <p>
+                                <span class="temp-high">${Math.round(forecast.temp_max)}°C</span> / 
+                                <span class="temp-low">${Math.round(forecast.temp_min)}°C</span>
+                            </p>
+                            <div class="details">
+                                <p>💨 Wind: ${forecast.wind} m/s</p>
+                                <p>💧 Humidity: ${forecast.humidity}%</p>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                forecastHTML += '</div>';
+                document.getElementById("forecast-container").innerHTML = forecastHTML;
+            } catch (error) {
+                console.error("Error fetching forecast:", error);
+                document.getElementById("forecast-container").innerHTML = 
+                    `<p class='error-message'>Error fetching forecast data. Please try again.</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
